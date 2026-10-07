@@ -1,6 +1,5 @@
 # Import python packages
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
 from snowflake.snowpark.functions import col
 
 # アプリのタイトルと説明文
@@ -13,7 +12,8 @@ name_on_order=st.text_input('NAME ON SMOOTHIE')
 st.write('The name on your Smoothie will be:', name_on_order)
 
 # Snowflakeセッションの取得
-session = get_active_session()
+cnx = st.connection("snowflake")
+session = cnx.session()
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
 # 複数選択ウィジェット
