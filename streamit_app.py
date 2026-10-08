@@ -1,4 +1,5 @@
 # Import python packages
+import requests
 import streamlit as st
 from snowflake.snowpark.functions import col
 
@@ -8,7 +9,7 @@ st.write(
     """Choose the fruits you want in your custom Smoothie!"""
 )
 
-name_on_order=st.text_input('NAME ON SMOOTHIE')
+name_on_order = st.text_input('NAME ON SMOOTHIE')
 st.write('The name on your Smoothie will be:', name_on_order)
 
 # Snowflakeセッションの取得
@@ -29,6 +30,11 @@ if ingredients_list:
 
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + ' '
+        
+        # フルーツごとの見出しと API からの栄養情報取得・表示
+        st.subheader(fruit_chosen + ' Nutrition Information')
+        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
+        sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
 
     my_insert_stmt = """ insert into smoothies.public.orders(ingredients, name_on_order)
                 values ('""" + ingredients_string + """', '""" + name_on_order + """')"""
@@ -40,6 +46,3 @@ if ingredients_list:
         session.sql(my_insert_stmt).collect()
         # 成功メッセージに注文者名を含める
         st.success('Your Smoothie is ordered, ' + name_on_order + '!', icon="✅")
-import requests  
-smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
-st.text(smoothiefroot_response)
