@@ -1,4 +1,5 @@
 # Import python packages
+import pandas as pd
 import requests
 import streamlit as st
 from snowflake.snowpark.functions import col
@@ -15,7 +16,12 @@ st.write('The name on your Smoothie will be:', name_on_order)
 # Snowflakeセッションの取得
 cnx = st.connection("snowflake")
 session = cnx.session()
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
+
+# FRUIT_NAME と SEARCH_ON を取得するよう変更
+my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
+
+# Snowpark DataFrame を Pandas DataFrame に変換
+pd_df = my_dataframe.to_pandas()
 
 # 複数選択ウィジェット
 ingredients_list = st.multiselect(
@@ -31,7 +37,12 @@ if ingredients_list:
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + ' '
         
-        # フルーツごとの見出しと API からの栄養情報取得・表示
+        # Pandas DataFrame から SEARCH_ON の値を取得
+        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+        
+        # テスト表示：抽出した search_on の値を確認
+        st.write('The search value for ', fruit_chosen,' is ', search_on, '.')
+
         st.subheader(fruit_chosen + ' Nutrition Information')
         smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
         sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
@@ -44,5 +55,4 @@ if ingredients_list:
 
     if time_to_submit:
         session.sql(my_insert_stmt).collect()
-        # 成功メッセージに注文者名を含める
         st.success('Your Smoothie is ordered, ' + name_on_order + '!', icon="✅")
