@@ -32,7 +32,7 @@ if ingredients_list:
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
         
-        # フルーツ別の栄養情報を API から取得して表示
+        # フルーツ別の見出しと栄養情報を API から取得して表示
         st.subheader(fruit_chosen + " Nutrition Information")
         smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
         sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
