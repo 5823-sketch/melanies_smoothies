@@ -1,3 +1,4 @@
+import pandas as pd
 import requests
 import streamlit as st
 from snowflake.snowpark.functions import col
@@ -10,12 +11,15 @@ st.write("Choose the fruits you want in your custom Smoothie!")
 name_on_order = st.text_input("Name on Smoothie:")
 st.write("The name on your Smoothie will be:", name_on_order)
 
-# Snowflake セッションの取得 (st.connection を使用)
+# Snowflake セッションの取得
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# フルーツ一覧テーブルから FRUIT_NAME カラムを取得
-my_dataframe = session.table("smoothies.public.fruit_options").select(col("FRUIT_NAME"))
+# FRUIT_NAME と SEARCH_ON カラムを取得
+my_dataframe = session.table("smoothies.public.fruit_options").select(col("FRUIT_NAME"), col("SEARCH_ON"))
+
+# 検索キー（SEARCH_ON）を参照しやすくするため Pandas DataFrame に変換
+pd_df = my_dataframe.to_pandas()
 
 # トッピング選択マルチセレクト (最大5つ)
 ingredients_list = st.multiselect(
@@ -32,9 +36,14 @@ if ingredients_list:
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
         
+        # FRUIT_NAME に対応する SEARCH_ON の値（API用キーワード）を取得
+        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+        
         # フルーツ別の栄養情報を API から取得して表示
         st.subheader(fruit_chosen + " Nutrition Information")
-        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
+        
+        # FRUIT_NAME ではなく search_on を使って API を呼び出し
+        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + search_on)
         sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
 
     # Snowflake 注文テーブルへの INSERT SQL 文作成
