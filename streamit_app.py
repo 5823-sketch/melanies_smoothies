@@ -14,7 +14,8 @@ st.write("The name on your Smoothie will be:", name_on_order)
 # Snowflake セッションの取得
 cnx = st.connection("snowflake")
 session = cnx.session()
-
+smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
+st.text(smoothiefroot_response)
 # FRUIT_NAME と SEARCH_ON カラムを取得
 my_dataframe = session.table("smoothies.public.fruit_options").select(col("FRUIT_NAME"), col("SEARCH_ON"))
 
