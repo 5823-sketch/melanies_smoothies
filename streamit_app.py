@@ -6,9 +6,7 @@ from snowflake.snowpark.functions import col
 
 # アプリのタイトルと説明文
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
-st.write(
-    """Choose the fruits you want in your custom Smoothie!"""
-)
+st.write("""Choose the fruits you want in your custom Smoothie!""")
 
 name_on_order = st.text_input('NAME ON SMOOTHIE')
 st.write('The name on your Smoothie will be:', name_on_order)
@@ -17,8 +15,6 @@ st.write('The name on your Smoothie will be:', name_on_order)
 cnx = st.connection("snowflake")
 session = cnx.session()
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
-
-# Snowpark DataFrame を Pandas DataFrame に変換
 pd_df = my_dataframe.to_pandas()
 
 # 複数選択ウィジェット
@@ -28,22 +24,22 @@ ingredients_list = st.multiselect(
     max_selections=5
 )
 
-# 材料が選択されている場合の処理
 if ingredients_list:
     ingredients_string = ''
 
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + ' '
-        
-        # Pandas DataFrame から SEARCH_ON の値を取得
         search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
         st.write('The search value for ', fruit_chosen,' is ', search_on, '.')
-
         st.subheader(fruit_chosen + ' Nutrition Information')
         
-        # 【修正箇所】fruit_chosen ではなく search_on を API に渡す
-        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + search_on)
-        sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
+        # --- APIエラーを回避するための処理 ---
+        try:
+            smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + search_on)
+            sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
+        except requests.exceptions.JSONDecodeError:
+            st.error("現在 SmoothieFroot API サーバーがダウンしているため、栄養情報を取得できません。")
+        # ----------------------------------
 
     my_insert_stmt = """ insert into smoothies.public.orders(ingredients, name_on_order)
                 values ('""" + ingredients_string + """', '""" + name_on_order + """')"""
